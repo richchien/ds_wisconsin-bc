@@ -2,9 +2,7 @@
 title: "breast cancer wisconsin (Dx)"
 author: "Rich Chien"
 date: "November 21, 2016"
-output: 
-  html_document: 
-    keep_md: yes
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
@@ -15,9 +13,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Get input data
 
 
-```{r input}
+```{r input, message=F, warning=F}
 set.seed(7)
-
 library(dplyr)
 library(ggplot2)
 library(caret)
