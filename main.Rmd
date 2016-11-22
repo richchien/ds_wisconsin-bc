@@ -1,0 +1,80 @@
+---
+title: "breast cancer wisconsin (Dx)"
+author: "Rich Chien"
+date: "November 21, 2016"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Get input data
+
+
+```{r input}
+set.seed(7)
+
+library(dplyr)
+library(ggplot2)
+library(caret)
+
+df <- read.csv("./data.csv")
+
+# delete id and X columns
+df <- df %>%
+  select(-id, -X)
+```
+
+
+## Setup train and test sets
+
+```{r traintest}
+
+# take random 70% to train
+index <- sample(1:nrow(df),size = 0.7*nrow(df)) 
+train <- df[index, ] 
+test <- df[-index, ] 
+
+
+```
+
+## Setup models
+
+``` {r models, warning=F, message=F}
+# prepare training control
+control <- trainControl(method="repeatedcv", number=10, repeats=3)
+
+# train linear model
+m.glm <- train(diagnosis~., data=train, method="glm", trControl=control)
+
+# train LVQ model
+m.lvq <- train(diagnosis~., data=train, method="lvq", trControl=control)
+
+# train GBM model
+m.gbm <- train(diagnosis~., data=train, method="gbm", trControl=control, verbose=FALSE)
+
+# train SVM model
+m.svm <- train(diagnosis~., data=train, method="svmRadial", trControl=control)
+
+# train rf model
+m.rf <- train(diagnosis~., data=train, method="rf", trControl=control)
+
+# collect resamples
+results <- resamples(list(glm=m.glm, lvq=m.lvq, gbm=m.gbm, svm=m.svm, rf=m.rf))
+
+# summarize 
+summary(results)
+bwplot(results)
+dotplot(results)
+
+# predict test set using model
+pred.svm <- predict(m.svm, test)
+
+# confusion matrix
+confusionMatrix(pred.svm, test$diagnosis)
+
+```
