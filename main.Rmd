@@ -74,3 +74,10 @@ pred.svm <- predict(m.svm, test)
 # confusion matrix
 confusionMatrix(pred.svm, test$diagnosis)
 ```
+
+
+# save model
+# saveRDS(m.svm, "./m.svm.rds")
+ 
+# load model
+# m.svm <- readRDS("./m.svm.rds")
