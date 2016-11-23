@@ -41,24 +41,29 @@ test <- df[-index, ]
 
 ## Setup models
 
+# registerDoParallel(4,cores=2)
+# getDoParWorkers()
+
 ```{r models, warning=F, message=F}
-# prepare training control
-control <- trainControl(method="repeatedcv", number=10, repeats=3)
+# prepare training ctrl
+ctrl <- trainControl(method="repeatedcv", number=10, 
+                        repeats=3, summaryFunction=twoClassSummary, classProbs=T)
 
 # train linear model
-m.glm <- train(diagnosis~., data=train, method="glm", trControl=control)
+m.glm <- train(diagnosis~., data=train, method="glm", trControl=ctrl)
 
 # train LVQ model
-m.lvq <- train(diagnosis~., data=train, method="lvq", trControl=control)
+m.lvq <- train(diagnosis~., data=train, method="lvq", trControl=ctrl)
 
 # train GBM model
-m.gbm <- train(diagnosis~., data=train, method="gbm", trControl=control, verbose=FALSE)
+m.gbm <- train(diagnosis~., data=train, method="gbm", 
+               metric="ROC", trControl=ctrl, verbose=F)
 
 # train SVM model
-m.svm <- train(diagnosis~., data=train, method="svmRadial", trControl=control)
+m.svm <- train(diagnosis~., data=train, method="svmRadial", trControl=ctrl)
 
 # train rf model
-m.rf <- train(diagnosis~., data=train, method="rf", trControl=control)
+m.rf <- train(diagnosis~., data=train, method="rf", trControl=ctrl)
 
 # collect resamples
 results <- resamples(list(glm=m.glm, lvq=m.lvq, gbm=m.gbm, svm=m.svm, rf=m.rf))
@@ -68,11 +73,32 @@ summary(results)
 bwplot(results)
 dotplot(results)
 
+
+# examine gbm model
+plot(m.gbm)
+m.gbm$bestTune
+
 # predict test set using model
-pred.svm <- predict(m.svm, test)
+pred.gbm <- predict(m.gbm, test)
 
 # confusion matrix
 confusionMatrix(pred.svm, test$diagnosis)
+
+# ROC curve
+pred.gbm.prob <- predict(m.gbm, test, type="prob")
+
+auc <- roc(ifelse(test[,diagnosis]=="M",1,0), pred.gbm.prob[[2]])
+print(auc$auc)
+
+
+gbm.ROC <- roc(predictor=gbm.probs$PS,
+               response=testData$Class,
+               levels=rev(levels(testData$Class)))
+
+# accuracy calc
+res <- table(pred.svm, test$diagnosis)
+accuracy <- round(100 * sum(diag(res))/sum(res), 2)
+
 ```
 
 
