@@ -19,7 +19,7 @@ library(dplyr)
 library(ggplot2)
 library(caret)
 
-df <- read.csv("./data.csv")
+df <- read.csv("C:/Users/RC3258/Documents/GitRepo/ds_wisconsin-bc/data.csv")
 
 # delete id and X columns
 df <- df %>%
@@ -41,13 +41,18 @@ test <- df[-index, ]
 
 ## Setup models
 
-# registerDoParallel(4,cores=2)
-# getDoParWorkers()
 
 ```{r models, warning=F, message=F}
+
+# (optional multiple core setup)
+# library(doParallel)
+# registerDoParallel(cores=4)
+# getDoParWorkers()
+
+
 # prepare training ctrl
-ctrl <- trainControl(method="repeatedcv", number=10, 
-                        repeats=3, summaryFunction=twoClassSummary, classProbs=T)
+ctrl <- trainControl(method="repeatedcv", number=10, repeats=3)
+
 
 # train linear model
 m.glm <- train(diagnosis~., data=train, method="glm", trControl=ctrl)
@@ -56,8 +61,7 @@ m.glm <- train(diagnosis~., data=train, method="glm", trControl=ctrl)
 m.lvq <- train(diagnosis~., data=train, method="lvq", trControl=ctrl)
 
 # train GBM model
-m.gbm <- train(diagnosis~., data=train, method="gbm", 
-               metric="ROC", trControl=ctrl, verbose=F)
+m.gbm <- train(diagnosis~., data=train, method="gbm", trControl=ctrl, verbose=F)
 
 # train SVM model
 m.svm <- train(diagnosis~., data=train, method="svmRadial", trControl=ctrl)
@@ -72,38 +76,45 @@ results <- resamples(list(glm=m.glm, lvq=m.lvq, gbm=m.gbm, svm=m.svm, rf=m.rf))
 summary(results)
 bwplot(results)
 dotplot(results)
+```
 
+
+```{r gbm, eval=F, warning=F, message=F}
 
 # examine gbm model
-plot(m.gbm)
-m.gbm$bestTune
+ctrlgbm <- trainControl(method="repeatedcv", number=10, 
+                        repeats=3, summaryFunction=twoClassSummary, classProbs=T)
+# train GBM model
+m2.gbm <- train(diagnosis~., data=train, method="gbm",  metric="ROC", 
+               trControl=ctrlgbm, verbose=F)
+
+plot(m2.gbm)
+m2.gbm$bestTune
+
 
 # predict test set using model
-pred.gbm <- predict(m.gbm, test)
+pred2.gbm <- predict(m2.gbm, test)
 
 # confusion matrix
-confusionMatrix(pred.svm, test$diagnosis)
+confusionMatrix(pred2.gbm, test$diagnosis)
 
 # ROC curve
-pred.gbm.prob <- predict(m.gbm, test, type="prob")
+pred2.gbm.prob <- predict(m2.gbm, test, type="prob")
 
-auc <- roc(ifelse(test[,diagnosis]=="M",1,0), pred.gbm.prob[[2]])
+auc <- roc(ifelse(test[,1]=="M",1,0), pred2.gbm.prob[[2]])
 print(auc$auc)
-
-
-gbm.ROC <- roc(predictor=gbm.probs$PS,
-               response=testData$Class,
-               levels=rev(levels(testData$Class)))
 
 # accuracy calc
 res <- table(pred.svm, test$diagnosis)
 accuracy <- round(100 * sum(diag(res))/sum(res), 2)
-
-```
-
 
 # save model
 # saveRDS(m.svm, "./m.svm.rds")
  
 # load model
 # m.svm <- readRDS("./m.svm.rds")
+
+```
+
+
+
